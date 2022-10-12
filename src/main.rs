@@ -78,7 +78,6 @@ impl Output {
         queue!(
             self.editor_contents,
             cursor::Hide,
-            terminal::Clear(ClearType::All),
             cursor::MoveTo(0, 0)
         )?;
         self.draw_rows();
@@ -110,9 +109,10 @@ impl Output {
                 terminal::Clear(ClearType::UntilNewLine)
             )
             .unwrap();
-            if i == screen_rows - 1 {
+            if i < screen_rows - 1 {
                 self.editor_contents.push_str("\r\n");
             }
+            stdout().flush().unwrap();
         }
     }
 }
