@@ -1,5 +1,5 @@
-use std::cmp;
 use crossterm::event::KeyCode;
+use std::cmp;
 
 /// 光标控制器
 pub struct CursorController {

@@ -1,9 +1,9 @@
 use crate::{CursorController, EditorOutput, VERSION};
 use crossterm::event::KeyCode;
+use crossterm::terminal::ClearType;
 use crossterm::{cursor, execute, queue, terminal};
 use std::cmp;
 use std::io::{stdout, Write};
-use crossterm::terminal::ClearType;
 
 /// 编辑器内容显示器
 pub struct EditorContentDisplay {
@@ -49,7 +49,8 @@ impl EditorContentDisplay {
             self.editor_output,
             cursor::MoveTo(cursor_x as u16, cursor_y as u16),
             cursor::Show
-        ).unwrap();
+        )
+        .unwrap();
         self.editor_output.flush().unwrap();
     }
 
@@ -81,8 +82,7 @@ impl EditorContentDisplay {
                 while !text.is_char_boundary(len) {
                     len -= 1;
                 }
-                self.editor_output
-                    .push_str(&self.content[file_rows][..len]);
+                self.editor_output.push_str(&self.content[file_rows][..len]);
             }
             queue!(self.editor_output, terminal::Clear(ClearType::UntilNewLine)).unwrap();
             if i < screen_rows - 1 {

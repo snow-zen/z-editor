@@ -1,9 +1,9 @@
 use crate::EditorContentDisplay;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use std::path::Path;
 use std::time::Duration;
 use std::{env, fs};
-use std::path::Path;
 
 /// 编辑器
 pub struct Editor {
