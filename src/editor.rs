@@ -22,7 +22,7 @@ impl Editor {
             Some(file) => fs::read_to_string(<String as AsRef<Path>>::as_ref(&file))
                 .unwrap()
                 .lines()
-                .map(|it| it.into())
+                .map(|it| String::from(it))
                 .collect(),
         };
         Self {

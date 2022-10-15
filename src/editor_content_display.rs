@@ -16,12 +16,12 @@ pub struct EditorContentDisplay {
     // 光标控制器
     cursor_controller: CursorController,
     // 文本内容
-    content: Vec<Box<str>>,
+    content: Vec<String>,
 }
 
 impl EditorContentDisplay {
     /// 创建编辑器内容显示器
-    pub fn new(content: Vec<Box<str>>) -> Self {
+    pub fn new(content: Vec<String>) -> Self {
         let win_size = terminal::size()
             .map(|(x, y)| (x as usize, y as usize))
             .unwrap();
@@ -44,7 +44,8 @@ impl EditorContentDisplay {
         self.cursor_controller.scroll();
         queue!(self.editor_output, cursor::Hide, cursor::MoveTo(0, 0)).unwrap();
         self.draw_rows();
-        let cursor_x = self.cursor_controller.get_cursor().0;
+        let cursor_x =
+            self.cursor_controller.get_cursor().0 - self.cursor_controller.get_column_offset();
         let cursor_y =
             self.cursor_controller.get_cursor().1 - self.cursor_controller.get_row_offset();
         queue!(
@@ -79,12 +80,15 @@ impl EditorContentDisplay {
                 }
             } else {
                 let text = &self.content[file_rows];
-                let mut len = cmp::min(text.len(), screen_columns);
+                let column_offset = self.cursor_controller.get_column_offset();
+                let mut len = cmp::min(text.len().saturating_sub(column_offset), screen_columns);
                 // Note: 修复中文字符串截取问题
                 while !text.is_char_boundary(len) {
                     len -= 1;
                 }
-                self.editor_output.push_str(&self.content[file_rows][..len]);
+                let start = if len == 0 { 0 } else { column_offset };
+                self.editor_output
+                    .push_str(&self.content[file_rows][start..start + len]);
             }
             queue!(self.editor_output, terminal::Clear(ClearType::UntilNewLine)).unwrap();
             if i < screen_rows - 1 {
@@ -99,7 +103,11 @@ impl EditorContentDisplay {
     }
 
     pub fn move_cursor(&mut self, direction: KeyCode) {
+        let cur_row = match self.content.get(self.cursor_controller.get_cursor().1) {
+            None => "",
+            Some(s) => s,
+        };
         self.cursor_controller
-            .move_cursor(direction, self.content.len());
+            .move_cursor(direction, self.content.len(), cur_row);
     }
 }

@@ -14,6 +14,8 @@ pub struct CursorController {
     screen_columns: usize,
     // 行偏移量
     row_offset: usize,
+    // 列偏移量
+    column_offset: usize,
 }
 
 impl CursorController {
@@ -25,6 +27,7 @@ impl CursorController {
             screen_rows: win_size.1,
             screen_columns: win_size.0,
             row_offset: 0,
+            column_offset: 0,
         }
     }
 
@@ -38,16 +41,26 @@ impl CursorController {
         self.row_offset
     }
 
+    pub fn get_column_offset(&self) -> usize {
+        self.column_offset
+    }
+
     /// 屏幕滚动
     pub fn scroll(&mut self) {
+        // 行偏移量变化
         self.row_offset = cmp::min(self.row_offset, self.cursor_y);
         if self.cursor_y >= self.row_offset + self.screen_rows {
             self.row_offset = self.cursor_y - self.screen_rows + 1;
         }
+        // 列偏移量变化
+        self.column_offset = cmp::min(self.column_offset, self.cursor_x);
+        if self.cursor_x >= self.column_offset + self.screen_columns {
+            self.column_offset = self.cursor_x - self.screen_columns + 1;
+        }
     }
 
     /// 移动光标
-    pub fn move_cursor(&mut self, direction: KeyCode, number_of_rows: usize) {
+    pub fn move_cursor(&mut self, direction: KeyCode, number_of_rows: usize, cur_row: &str) {
         // todo 移动光标支持中文
         match direction {
             KeyCode::Up => {
@@ -57,7 +70,7 @@ impl CursorController {
                 self.cursor_x = self.cursor_x.saturating_sub(1);
             }
             KeyCode::Right => {
-                if self.cursor_x != self.screen_columns - 1 {
+                if self.cursor_y < number_of_rows && self.cursor_x < cur_row.len() {
                     self.cursor_x += 1;
                 }
             }
