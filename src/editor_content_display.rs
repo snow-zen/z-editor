@@ -1,7 +1,6 @@
 use std::cmp;
 use std::io::{stdout, Write};
 
-use crossterm::event::KeyCode;
 use crossterm::terminal::ClearType;
 use crossterm::{cursor, execute, queue, terminal};
 
@@ -13,22 +12,16 @@ pub struct EditorContentDisplay {
     win_size: (usize, usize),
     // 编辑器输出
     editor_output: EditorOutput,
-    // 光标控制器
-    cursor_controller: CursorController,
     // 文本内容
     content: Vec<String>,
 }
 
 impl EditorContentDisplay {
     /// 创建编辑器内容显示器
-    pub fn new(content: Vec<String>) -> Self {
-        let win_size = terminal::size()
-            .map(|(x, y)| (x as usize, y as usize))
-            .unwrap();
+    pub fn new(content: Vec<String>, win_size: (usize, usize)) -> Self {
         Self {
             win_size,
             editor_output: EditorOutput::new(),
-            cursor_controller: CursorController::new(win_size),
             content,
         }
     }
@@ -40,14 +33,12 @@ impl EditorContentDisplay {
     }
 
     /// 刷新屏幕
-    pub fn refresh_screen(&mut self) {
-        self.cursor_controller.scroll();
+    pub fn refresh_screen(&mut self, cc: &mut CursorController) {
+        cc.scroll();
         queue!(self.editor_output, cursor::Hide, cursor::MoveTo(0, 0)).unwrap();
-        self.draw_rows();
-        let cursor_x =
-            self.cursor_controller.get_cursor().0 - self.cursor_controller.get_column_offset();
-        let cursor_y =
-            self.cursor_controller.get_cursor().1 - self.cursor_controller.get_row_offset();
+        self.draw_rows(cc);
+        let cursor_x = cc.get_cursor().0 - cc.get_column_offset();
+        let cursor_y = cc.get_cursor().1 - cc.get_row_offset();
         queue!(
             self.editor_output,
             cursor::MoveTo(cursor_x as u16, cursor_y as u16),
@@ -57,11 +48,11 @@ impl EditorContentDisplay {
         self.editor_output.flush().unwrap();
     }
 
-    pub fn draw_rows(&mut self) {
+    pub fn draw_rows(&mut self, cc: &mut CursorController) {
         let screen_rows = self.win_size.1;
         let screen_columns = self.win_size.0;
         for i in 0..screen_rows {
-            let file_rows = i + self.cursor_controller.get_row_offset();
+            let file_rows = i + cc.get_row_offset();
             if file_rows >= self.content.len() {
                 if self.content.len() == 0 && i == screen_rows / 3 {
                     let mut welcome = format!("z-editor --- version: {}", VERSION);
@@ -80,7 +71,7 @@ impl EditorContentDisplay {
                 }
             } else {
                 let text = &self.content[file_rows];
-                let column_offset = self.cursor_controller.get_column_offset();
+                let column_offset = cc.get_column_offset();
                 let mut len = cmp::min(text.len().saturating_sub(column_offset), screen_columns);
                 // Note: 修复中文字符串截取问题
                 while !text.is_char_boundary(len) {
@@ -102,12 +93,11 @@ impl EditorContentDisplay {
         self.win_size
     }
 
-    pub fn move_cursor(&mut self, direction: KeyCode) {
-        let cur_row = match self.content.get(self.cursor_controller.get_cursor().1) {
-            None => "",
-            Some(s) => s,
-        };
-        self.cursor_controller
-            .move_cursor(direction, self.content.len(), cur_row);
+    pub fn number_of_rows(&self) -> usize {
+        self.content.len()
+    }
+
+    pub fn get_row(&self, i: usize) -> &str {
+        self.content[i].as_str()
     }
 }

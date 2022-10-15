@@ -1,5 +1,6 @@
 use std::cmp;
 
+use crate::EditorContentDisplay;
 use crossterm::event::KeyCode;
 
 /// 光标控制器
@@ -60,7 +61,8 @@ impl CursorController {
     }
 
     /// 移动光标
-    pub fn move_cursor(&mut self, direction: KeyCode, number_of_rows: usize, cur_row: &str) {
+    pub fn move_cursor(&mut self, direction: KeyCode, ecd: &EditorContentDisplay) {
+        let number_of_rows = ecd.number_of_rows();
         // todo 移动光标支持中文
         match direction {
             KeyCode::Up => {
@@ -70,7 +72,9 @@ impl CursorController {
                 self.cursor_x = self.cursor_x.saturating_sub(1);
             }
             KeyCode::Right => {
-                if self.cursor_y < number_of_rows && self.cursor_x < cur_row.len() {
+                if self.cursor_y < number_of_rows
+                    && self.cursor_x < ecd.get_row(self.cursor_y).len()
+                {
                     self.cursor_x += 1;
                 }
             }
@@ -87,5 +91,11 @@ impl CursorController {
             }
             _ => unimplemented!(),
         }
+        let row_len = if self.cursor_y < number_of_rows {
+            ecd.get_row(self.cursor_y).len()
+        } else {
+            0
+        };
+        self.cursor_x = cmp::min(self.cursor_x, row_len);
     }
 }

@@ -2,15 +2,17 @@ use std::path::Path;
 use std::time::Duration;
 use std::{env, fs};
 
-use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::{event, terminal};
 
-use crate::EditorContentDisplay;
+use crate::{CursorController, EditorContentDisplay};
 
 /// 编辑器
 pub struct Editor {
     // 编辑器内容显示器
     editor_content_display: EditorContentDisplay,
+    // 光标控制器
+    cursor_controller: CursorController,
 }
 
 impl Editor {
@@ -25,15 +27,20 @@ impl Editor {
                 .map(|it| String::from(it))
                 .collect(),
         };
+        let win_size = terminal::size()
+            .map(|(x, y)| (x as usize, y as usize))
+            .unwrap();
         Self {
-            editor_content_display: EditorContentDisplay::new(contents),
+            editor_content_display: EditorContentDisplay::new(contents, win_size),
+            cursor_controller: CursorController::new(win_size),
         }
     }
 
     /// 运行编辑器
     pub fn run(&mut self) {
         loop {
-            self.editor_content_display.refresh_screen();
+            self.editor_content_display
+                .refresh_screen(&mut self.cursor_controller);
             let mut exit_flag = false;
             if self.is_event_available().unwrap() {
                 if let Event::Key(event) = event::read().unwrap() {
@@ -68,17 +75,21 @@ impl Editor {
                     | KeyCode::Home
                     | KeyCode::End),
                 modifiers: KeyModifiers::NONE,
-            } => self.editor_content_display.move_cursor(direction),
+            } => self
+                .cursor_controller
+                .move_cursor(direction, &self.editor_content_display),
             KeyEvent {
                 code: val @ (KeyCode::PageUp | KeyCode::PageDown),
                 modifiers: KeyModifiers::NONE,
             } => (0..self.editor_content_display.get_win_size().1).for_each(|_| {
-                self.editor_content_display
-                    .move_cursor(if matches!(val, KeyCode::PageUp) {
+                self.cursor_controller.move_cursor(
+                    if matches!(val, KeyCode::PageUp) {
                         KeyCode::Up
                     } else {
                         KeyCode::Down
-                    });
+                    },
+                    &self.editor_content_display,
+                );
             }),
             _ => {}
         }
