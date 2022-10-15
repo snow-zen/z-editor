@@ -1,9 +1,11 @@
-use crate::{CursorController, EditorOutput, VERSION};
+use std::cmp;
+use std::io::{stdout, Write};
+
 use crossterm::event::KeyCode;
 use crossterm::terminal::ClearType;
 use crossterm::{cursor, execute, queue, terminal};
-use std::cmp;
-use std::io::{stdout, Write};
+
+use crate::{CursorController, EditorOutput, VERSION};
 
 /// 编辑器内容显示器
 pub struct EditorContentDisplay {

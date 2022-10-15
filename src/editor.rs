@@ -1,12 +1,15 @@
-use crate::EditorContentDisplay;
-use crossterm::event;
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use std::path::Path;
 use std::time::Duration;
 use std::{env, fs};
 
+use crossterm::event;
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+
+use crate::EditorContentDisplay;
+
 /// 编辑器
 pub struct Editor {
+    // 编辑器内容显示器
     editor_content_display: EditorContentDisplay,
 }
 
@@ -27,6 +30,7 @@ impl Editor {
         }
     }
 
+    /// 运行编辑器
     pub fn run(&mut self) {
         loop {
             self.editor_content_display.refresh_screen();
@@ -43,10 +47,12 @@ impl Editor {
         }
     }
 
+    /// 判断是否有按键事件可用
     fn is_event_available(&self) -> crossterm::Result<bool> {
         event::poll(Duration::from_millis(500))
     }
 
+    /// 处理按键事件
     fn process_key(&mut self, event: KeyEvent, exit_flag: &mut bool) {
         match event {
             KeyEvent {
