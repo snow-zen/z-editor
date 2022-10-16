@@ -1,6 +1,6 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
-use std::{env, fs};
+use std::{cmp, env, fs};
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::{event, terminal};
@@ -13,34 +13,50 @@ pub struct Editor {
     editor_content_display: EditorContentDisplay,
     // 光标控制器
     cursor_controller: CursorController,
+    // 文件路径
+    file_name: Option<PathBuf>,
 }
 
 impl Editor {
     /// 创建编辑器
     pub fn new() -> Self {
         let mut arg = env::args();
-        let contents = match arg.nth(1) {
-            None => Vec::new(),
-            Some(file) => fs::read_to_string(<String as AsRef<Path>>::as_ref(&file))
-                .unwrap()
-                .lines()
-                .map(|it| String::from(it))
-                .collect(),
-        };
         let win_size = terminal::size()
             .map(|(x, y)| (x as usize, y as usize))
             .unwrap();
-        Self {
-            editor_content_display: EditorContentDisplay::new(contents, win_size),
-            cursor_controller: CursorController::new(win_size),
+        match arg.nth(1) {
+            None => Self {
+                editor_content_display: EditorContentDisplay::new(Vec::new(), win_size),
+                cursor_controller: CursorController::new(win_size),
+                file_name: None,
+            },
+            Some(file) => {
+                let content = fs::read_to_string(<String as AsRef<Path>>::as_ref(&file))
+                    .unwrap()
+                    .lines()
+                    .map(|it| String::from(it))
+                    .collect();
+                Self {
+                    editor_content_display: EditorContentDisplay::new(content, win_size),
+                    cursor_controller: CursorController::new(win_size),
+                    file_name: Some(file.into()),
+                }
+            }
         }
     }
 
     /// 运行编辑器
     pub fn run(&mut self) {
         loop {
+            let file_name = self
+                .file_name
+                .as_ref()
+                .and_then(|path| path.file_name())
+                .and_then(|name| name.to_str())
+                .unwrap_or("[No Name]");
+            self.cursor_controller.scroll(&self.editor_content_display);
             self.editor_content_display
-                .refresh_screen(&mut self.cursor_controller);
+                .refresh_screen(&mut self.cursor_controller, file_name);
             let mut exit_flag = false;
             if self.is_event_available().unwrap() {
                 if let Event::Key(event) = event::read().unwrap() {
@@ -81,16 +97,28 @@ impl Editor {
             KeyEvent {
                 code: val @ (KeyCode::PageUp | KeyCode::PageDown),
                 modifiers: KeyModifiers::NONE,
-            } => (0..self.editor_content_display.get_win_size().1).for_each(|_| {
-                self.cursor_controller.move_cursor(
-                    if matches!(val, KeyCode::PageUp) {
-                        KeyCode::Up
-                    } else {
-                        KeyCode::Down
-                    },
-                    &self.editor_content_display,
-                );
-            }),
+            } => {
+                if matches!(val, KeyCode::PageUp) {
+                    self.cursor_controller.get_cursor().1 = self.cursor_controller.get_row_offset();
+                } else {
+                    self.cursor_controller.get_cursor().1 = cmp::min(
+                        self.editor_content_display.get_win_size().1
+                            + self.cursor_controller.get_row_offset()
+                            - 1,
+                        self.editor_content_display.number_of_rows(),
+                    )
+                }
+                (0..self.editor_content_display.get_win_size().1).for_each(|_| {
+                    self.cursor_controller.move_cursor(
+                        if matches!(val, KeyCode::PageUp) {
+                            KeyCode::Up
+                        } else {
+                            KeyCode::Down
+                        },
+                        &self.editor_content_display,
+                    );
+                })
+            }
             _ => {}
         }
     }

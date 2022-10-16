@@ -1,10 +1,12 @@
 use std::cmp;
 use std::io::{stdout, Write};
+use std::time::{Duration, Instant};
 
+use crossterm::style::style;
 use crossterm::terminal::ClearType;
-use crossterm::{cursor, execute, queue, terminal};
+use crossterm::{cursor, execute, queue, style, terminal};
 
-use crate::{CursorController, EditorOutput, VERSION};
+use crate::{CursorController, EditorOutput, StatusMessage, TAB_STOP, VERSION};
 
 /// 编辑器内容显示器
 pub struct EditorContentDisplay {
@@ -12,8 +14,10 @@ pub struct EditorContentDisplay {
     win_size: (usize, usize),
     // 编辑器输出
     editor_output: EditorOutput,
-    // 文本内容
-    content: Vec<String>,
+    // 文本行
+    rows: Vec<Row>,
+    // 状态信息
+    status_message: StatusMessage,
 }
 
 impl EditorContentDisplay {
@@ -22,7 +26,8 @@ impl EditorContentDisplay {
         Self {
             win_size,
             editor_output: EditorOutput::new(),
-            content,
+            rows: content.into_iter().map(|it| Row::new(it)).collect(),
+            status_message: StatusMessage::new("HELP: Ctrl-Q = Quit.".into()),
         }
     }
 
@@ -33,11 +38,12 @@ impl EditorContentDisplay {
     }
 
     /// 刷新屏幕
-    pub fn refresh_screen(&mut self, cc: &mut CursorController) {
-        cc.scroll();
+    pub fn refresh_screen(&mut self, cc: &mut CursorController, file_name: &str) {
         queue!(self.editor_output, cursor::Hide, cursor::MoveTo(0, 0)).unwrap();
         self.draw_rows(cc);
-        let cursor_x = cc.get_cursor().0 - cc.get_column_offset();
+        self.draw_status_bar(cc, file_name);
+        self.draw_message_bar();
+        let cursor_x = cc.get_render_x() - cc.get_column_offset();
         let cursor_y = cc.get_cursor().1 - cc.get_row_offset();
         queue!(
             self.editor_output,
@@ -53,8 +59,8 @@ impl EditorContentDisplay {
         let screen_columns = self.win_size.0;
         for i in 0..screen_rows {
             let file_rows = i + cc.get_row_offset();
-            if file_rows >= self.content.len() {
-                if self.content.len() == 0 && i == screen_rows / 3 {
+            if file_rows >= self.rows.len() {
+                if self.rows.len() == 0 && i == screen_rows / 3 {
                     let mut welcome = format!("z-editor --- version: {}", VERSION);
                     if welcome.len() > screen_columns {
                         welcome.truncate(screen_columns);
@@ -70,7 +76,7 @@ impl EditorContentDisplay {
                     self.editor_output.push('~');
                 }
             } else {
-                let text = &self.content[file_rows];
+                let text = &self.rows[file_rows].render;
                 let column_offset = cc.get_column_offset();
                 let mut len = cmp::min(text.len().saturating_sub(column_offset), screen_columns);
                 // Note: 修复中文字符串截取问题
@@ -79,13 +85,40 @@ impl EditorContentDisplay {
                 }
                 let start = if len == 0 { 0 } else { column_offset };
                 self.editor_output
-                    .push_str(&self.content[file_rows][start..start + len]);
+                    .push_str(&self.rows[file_rows].render[start..start + len]);
             }
             queue!(self.editor_output, terminal::Clear(ClearType::UntilNewLine)).unwrap();
-            if i < screen_rows - 1 {
-                self.editor_output.push_str("\r\n");
+            self.editor_output.push_str("\r\n");
+            // stdout().flush().unwrap();
+        }
+    }
+
+    pub fn draw_status_bar(&mut self, cc: &mut CursorController, file_name: &str) {
+        self.editor_output
+            .push_str(&style::Attribute::Reverse.to_string());
+        let info = format!("{} -- {} lines", file_name, self.number_of_rows());
+        let info_len = cmp::min(info.len(), self.win_size.0);
+        let line_info = format!("{}/{}", cc.get_cursor().1 + 1, self.number_of_rows());
+        self.editor_output.push_str(&info[..info_len]);
+        for i in info_len..self.win_size.0 {
+            if self.win_size.0 - i == line_info.len() {
+                self.editor_output.push_str(&line_info);
+                break;
+            } else {
+                self.editor_output.push(' ');
             }
-            stdout().flush().unwrap();
+        }
+        self.editor_output
+            .push_str(&style::Attribute::Reset.to_string());
+        self.editor_output.push_str("\r\n");
+    }
+
+    pub fn draw_message_bar(&mut self) {
+        queue!(self.editor_output, terminal::Clear(ClearType::UntilNewLine)).unwrap();
+        if let Some(msg) = self.status_message.message() {
+            self.editor_output.push_str(msg);
+            self.editor_output
+                .push_str(&msg[..cmp::min(self.win_size.0, msg.len())]);
         }
     }
 
@@ -94,10 +127,49 @@ impl EditorContentDisplay {
     }
 
     pub fn number_of_rows(&self) -> usize {
-        self.content.len()
+        self.rows.len()
     }
 
-    pub fn get_row(&self, i: usize) -> &str {
-        self.content[i].as_str()
+    pub fn get_render_row(&self, i: usize) -> &str {
+        self.rows[i].render.as_str()
+    }
+
+    pub fn get_row(&self, i: usize) -> &Row {
+        &self.rows[i]
+    }
+}
+
+pub struct Row {
+    row_content: String,
+    render: String,
+}
+
+impl Row {
+    fn new(row_content: String) -> Self {
+        let mut index = 0;
+        let capacity = row_content
+            .chars()
+            .fold(0, |acc, next| acc + if next == '\t' { TAB_STOP } else { 1 });
+        let mut render = String::with_capacity(capacity);
+        row_content.chars().for_each(|c| {
+            index += 1;
+            if c == '\t' {
+                render.push(' ');
+                while index % TAB_STOP != 0 {
+                    render.push(' ');
+                    index += 1;
+                }
+            } else {
+                render.push(c);
+            }
+        });
+        Self {
+            row_content,
+            render,
+        }
+    }
+
+    pub fn get_row_content(&self) -> &str {
+        self.row_content.as_str()
     }
 }

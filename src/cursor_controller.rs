@@ -1,7 +1,10 @@
 use std::cmp;
+use std::cmp::Ordering;
 
-use crate::EditorContentDisplay;
 use crossterm::event::KeyCode;
+
+use crate::editor_content_display::Row;
+use crate::{EditorContentDisplay, TAB_STOP};
 
 /// 光标控制器
 pub struct CursorController {
@@ -17,6 +20,8 @@ pub struct CursorController {
     row_offset: usize,
     // 列偏移量
     column_offset: usize,
+    // 渲染列偏移量
+    render_x: usize,
 }
 
 impl CursorController {
@@ -29,6 +34,7 @@ impl CursorController {
             screen_columns: win_size.0,
             row_offset: 0,
             column_offset: 0,
+            render_x: 0,
         }
     }
 
@@ -47,16 +53,20 @@ impl CursorController {
     }
 
     /// 屏幕滚动
-    pub fn scroll(&mut self) {
+    pub fn scroll(&mut self, ecd: &EditorContentDisplay) {
+        self.render_x = 0;
+        if self.cursor_y < ecd.number_of_rows() {
+            self.render_x = self.calculate_render_x(ecd.get_row(self.cursor_y));
+        }
         // 行偏移量变化
         self.row_offset = cmp::min(self.row_offset, self.cursor_y);
         if self.cursor_y >= self.row_offset + self.screen_rows {
             self.row_offset = self.cursor_y - self.screen_rows + 1;
         }
         // 列偏移量变化
-        self.column_offset = cmp::min(self.column_offset, self.cursor_x);
-        if self.cursor_x >= self.column_offset + self.screen_columns {
-            self.column_offset = self.cursor_x - self.screen_columns + 1;
+        self.column_offset = cmp::min(self.column_offset, self.render_x);
+        if self.render_x >= self.column_offset + self.screen_columns {
+            self.column_offset = self.render_x - self.screen_columns + 1;
         }
     }
 
@@ -69,13 +79,22 @@ impl CursorController {
                 self.cursor_y = self.cursor_y.saturating_sub(1);
             }
             KeyCode::Left => {
-                self.cursor_x = self.cursor_x.saturating_sub(1);
+                if self.cursor_x != 0 {
+                    self.cursor_x -= 1;
+                } else {
+                    self.cursor_y -= 1;
+                    self.cursor_x = ecd.get_render_row(self.cursor_y).len();
+                }
             }
             KeyCode::Right => {
-                if self.cursor_y < number_of_rows
-                    && self.cursor_x < ecd.get_row(self.cursor_y).len()
-                {
-                    self.cursor_x += 1;
+                if self.cursor_y < number_of_rows {
+                    match self.cursor_x.cmp(&ecd.get_render_row(self.cursor_y).len()) {
+                        Ordering::Less => self.cursor_x += 1,
+                        _ => {
+                            self.cursor_y += 1;
+                            self.cursor_x = 0;
+                        }
+                    }
                 }
             }
             KeyCode::Down => {
@@ -87,15 +106,34 @@ impl CursorController {
                 self.cursor_x = 0;
             }
             KeyCode::End => {
+                if self.cursor_y < number_of_rows {
+                    self.cursor_x = ecd.get_render_row(self.cursor_y).len();
+                }
                 self.cursor_x = self.screen_columns - 1;
             }
             _ => unimplemented!(),
         }
         let row_len = if self.cursor_y < number_of_rows {
-            ecd.get_row(self.cursor_y).len()
+            ecd.get_render_row(self.cursor_y).len()
         } else {
             0
         };
         self.cursor_x = cmp::min(self.cursor_x, row_len);
+    }
+
+    pub fn get_render_x(&self) -> usize {
+        self.render_x
+    }
+
+    fn calculate_render_x(&self, row: &Row) -> usize {
+        row.get_row_content()[..self.cursor_x]
+            .chars()
+            .fold(0, |render_x, c| {
+                if c == '\t' {
+                    render_x + ((TAB_STOP - 1) - (render_x % TAB_STOP) + 1)
+                } else {
+                    render_x + 1
+                }
+            })
     }
 }
