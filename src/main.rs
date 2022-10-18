@@ -1,16 +1,15 @@
 use crate::cursor_controller::CursorController;
 use crate::editor::Editor;
-use crate::editor_content_display::EditorContentDisplay;
+use crate::view::EditorView;
 use crate::editor_output::EditorOutput;
 use crate::status_message::StatusMessage;
 
 mod cursor_controller;
 mod editor;
-mod editor_content_display;
+mod view;
 mod editor_output;
 mod status;
 mod status_message;
-mod view;
 mod log;
 
 /// 编辑器版本

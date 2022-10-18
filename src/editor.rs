@@ -6,14 +6,14 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::{event, terminal};
 
 use crate::status::StatusInfo;
-use crate::view::EditView;
-use crate::{CursorController, EditorContentDisplay};
+use crate::view::EditorView;
+use crate::CursorController;
 use crate::log::EditLog;
 
 /// 编辑器
 pub struct Editor {
-    // 编辑器内容显示器
-    editor_content_display: EditorContentDisplay,
+    // 编辑视图
+    editor_view: EditorView,
     // 光标控制器
     cursor_controller: CursorController,
     // 文件路径
@@ -22,8 +22,6 @@ pub struct Editor {
     win_size: (usize, usize),
     // 状态信息
     status_info: StatusInfo,
-    // 编辑视图
-    edit_view: EditView,
     // 编辑日志
     edit_log: EditLog,
 }
@@ -40,12 +38,11 @@ impl Editor {
         let initial_message = "HELP: Ctrl-Q = Quit.".into();
         match arg.nth(1) {
             None => Self {
-                editor_content_display: EditorContentDisplay::new(Vec::new(), win_size),
+                editor_view: EditorView::new(Vec::new(), win_size),
                 cursor_controller: CursorController::new(win_size),
                 file_name: None,
                 win_size,
                 status_info: StatusInfo::new(None, 0, initial_message),
-                edit_view: EditView::new(),
                 edit_log: EditLog::new(),
             },
             Some(file) => {
@@ -57,12 +54,11 @@ impl Editor {
                         .collect();
                 let lines = content.len();
                 Self {
-                    editor_content_display: EditorContentDisplay::new(content, win_size),
+                    editor_view: EditorView::new(content, win_size),
                     cursor_controller: CursorController::new(win_size),
                     file_name: Some(file.clone().into()),
                     win_size,
                     status_info: StatusInfo::new(Some(file.clone().into()), lines, initial_message),
-                    edit_view: EditView::new(),
                     edit_log: EditLog::new(),
                 }
             }
@@ -78,8 +74,8 @@ impl Editor {
                 .and_then(|path| path.file_name())
                 .and_then(|name| name.to_str())
                 .unwrap_or("[No Name]");
-            self.cursor_controller.scroll(&self.editor_content_display);
-            self.editor_content_display
+            self.cursor_controller.scroll(&self.editor_view);
+            self.editor_view
                 .refresh_screen(&mut self.cursor_controller, file_name);
             let mut exit_flag = false;
             if self.is_event_available().unwrap() {
@@ -117,7 +113,7 @@ impl Editor {
                 modifiers: KeyModifiers::NONE,
             } => self
                 .cursor_controller
-                .move_cursor(direction, &self.editor_content_display),
+                .move_cursor(direction, &self.editor_view),
             KeyEvent {
                 code: val @ (KeyCode::PageUp | KeyCode::PageDown),
                 modifiers: KeyModifiers::NONE,
@@ -126,20 +122,20 @@ impl Editor {
                     self.cursor_controller.get_cursor().1 = self.cursor_controller.get_row_offset();
                 } else {
                     self.cursor_controller.get_cursor().1 = cmp::min(
-                        self.editor_content_display.get_win_size().1
+                        self.editor_view.get_win_size().1
                             + self.cursor_controller.get_row_offset()
                             - 1,
-                        self.editor_content_display.number_of_rows(),
+                        self.editor_view.number_of_rows(),
                     )
                 }
-                (0..self.editor_content_display.get_win_size().1).for_each(|_| {
+                (0..self.editor_view.get_win_size().1).for_each(|_| {
                     self.cursor_controller.move_cursor(
                         if matches!(val, KeyCode::PageUp) {
                             KeyCode::Up
                         } else {
                             KeyCode::Down
                         },
-                        &self.editor_content_display,
+                        &self.editor_view,
                     );
                 })
             }

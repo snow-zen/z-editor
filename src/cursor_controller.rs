@@ -3,8 +3,8 @@ use std::cmp::Ordering;
 
 use crossterm::event::KeyCode;
 
-use crate::editor_content_display::Row;
-use crate::{EditorContentDisplay, TAB_STOP};
+use crate::view::Row;
+use crate::{EditorView, TAB_STOP};
 
 /// 光标控制器
 pub struct CursorController {
@@ -53,7 +53,7 @@ impl CursorController {
     }
 
     /// 屏幕滚动
-    pub fn scroll(&mut self, ecd: &EditorContentDisplay) {
+    pub fn scroll(&mut self, ecd: &EditorView) {
         self.render_x = 0;
         if self.cursor_y < ecd.number_of_rows() {
             self.render_x = self.calculate_render_x(ecd.get_row(self.cursor_y));
@@ -71,7 +71,7 @@ impl CursorController {
     }
 
     /// 移动光标
-    pub fn move_cursor(&mut self, direction: KeyCode, ecd: &EditorContentDisplay) {
+    pub fn move_cursor(&mut self, direction: KeyCode, ecd: &EditorView) {
         let number_of_rows = ecd.number_of_rows();
         // todo 移动光标支持中文
         match direction {
