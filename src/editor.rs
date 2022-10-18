@@ -5,10 +5,10 @@ use std::{cmp, env, fs};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::{event, terminal};
 
+use crate::log::EditLog;
 use crate::status::StatusInfo;
 use crate::view::EditorView;
 use crate::CursorController;
-use crate::log::EditLog;
 
 /// 编辑器
 pub struct Editor {
@@ -16,8 +16,6 @@ pub struct Editor {
     editor_view: EditorView,
     // 光标控制器
     cursor_controller: CursorController,
-    // 文件路径
-    file_name: Option<PathBuf>,
     // 窗口大小
     win_size: (usize, usize),
     // 状态信息
@@ -27,6 +25,32 @@ pub struct Editor {
 }
 
 impl Editor {
+    fn empty(win_size: (usize, usize), initial_message: String) -> Self {
+        Self {
+            win_size,
+            editor_view: EditorView::new(Vec::new(), win_size),
+            cursor_controller: CursorController::new(win_size),
+            status_info: StatusInfo::new(None, 0, initial_message),
+            edit_log: EditLog::new(),
+        }
+    }
+
+    fn from_file(file: &Path, win_size: (usize, usize), initial_message: String) -> Self {
+        let content: Vec<String> = fs::read_to_string(file)
+            .unwrap()
+            .lines()
+            .map(|it| String::from(it))
+            .collect();
+        let lines = content.len();
+        Self {
+            win_size,
+            editor_view: EditorView::new(content, win_size),
+            cursor_controller: CursorController::new(win_size),
+            status_info: StatusInfo::new(Some(file.to_path_buf()), lines, initial_message),
+            edit_log: EditLog::new(),
+        }
+    }
+
     /// 创建编辑器
     pub fn new() -> Self {
         terminal::enable_raw_mode().unwrap();
@@ -37,43 +61,15 @@ impl Editor {
             .unwrap();
         let initial_message = "HELP: Ctrl-Q = Quit.".into();
         match arg.nth(1) {
-            None => Self {
-                editor_view: EditorView::new(Vec::new(), win_size),
-                cursor_controller: CursorController::new(win_size),
-                file_name: None,
-                win_size,
-                status_info: StatusInfo::new(None, 0, initial_message),
-                edit_log: EditLog::new(),
-            },
-            Some(file) => {
-                let content: Vec<String> =
-                    fs::read_to_string(<String as AsRef<Path>>::as_ref(&file))
-                        .unwrap()
-                        .lines()
-                        .map(|it| String::from(it))
-                        .collect();
-                let lines = content.len();
-                Self {
-                    editor_view: EditorView::new(content, win_size),
-                    cursor_controller: CursorController::new(win_size),
-                    file_name: Some(file.clone().into()),
-                    win_size,
-                    status_info: StatusInfo::new(Some(file.clone().into()), lines, initial_message),
-                    edit_log: EditLog::new(),
-                }
-            }
+            None => Self::empty(win_size, initial_message),
+            Some(file) => Self::from_file(file.as_ref(), win_size, initial_message),
         }
     }
 
     /// 运行编辑器
     pub fn run(&mut self) {
         loop {
-            let file_name = self
-                .file_name
-                .as_ref()
-                .and_then(|path| path.file_name())
-                .and_then(|name| name.to_str())
-                .unwrap_or("[No Name]");
+            let file_name = self.status_info.file_name_or_default();
             self.cursor_controller.scroll(&self.editor_view);
             self.editor_view
                 .refresh_screen(&mut self.cursor_controller, file_name);
@@ -122,8 +118,7 @@ impl Editor {
                     self.cursor_controller.get_cursor().1 = self.cursor_controller.get_row_offset();
                 } else {
                     self.cursor_controller.get_cursor().1 = cmp::min(
-                        self.editor_view.get_win_size().1
-                            + self.cursor_controller.get_row_offset()
+                        self.editor_view.get_win_size().1 + self.cursor_controller.get_row_offset()
                             - 1,
                         self.editor_view.number_of_rows(),
                     )

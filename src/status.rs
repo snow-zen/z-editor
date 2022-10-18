@@ -23,6 +23,16 @@ impl StatusInfo {
             message: initial_message
         }
     }
+
+    /// 获取文件名。如果不存在，则返回默认名称：**[No Name]**
+    pub fn file_name_or_default(&self) -> &str {
+        self
+            .file_name
+            .as_ref()
+            .and_then(|path| path.file_name())
+            .and_then(|name| name.to_str())
+            .unwrap_or("[No Name]")
+    }
 }
 
 /// 状态枚举
