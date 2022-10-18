@@ -15,6 +15,8 @@ pub struct Editor {
     cursor_controller: CursorController,
     // 文件路径
     file_name: Option<PathBuf>,
+    // 窗口大小
+    win_size: (usize, usize)
 }
 
 impl Editor {
@@ -31,6 +33,7 @@ impl Editor {
                 editor_content_display: EditorContentDisplay::new(Vec::new(), win_size),
                 cursor_controller: CursorController::new(win_size),
                 file_name: None,
+                win_size
             },
             Some(file) => {
                 let content = fs::read_to_string(<String as AsRef<Path>>::as_ref(&file))
@@ -42,6 +45,7 @@ impl Editor {
                     editor_content_display: EditorContentDisplay::new(content, win_size),
                     cursor_controller: CursorController::new(win_size),
                     file_name: Some(file.into()),
+                    win_size
                 }
             }
         }
