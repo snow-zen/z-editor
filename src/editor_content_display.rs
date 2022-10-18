@@ -139,6 +139,12 @@ impl EditorContentDisplay {
     }
 }
 
+impl Drop for EditorContentDisplay {
+    fn drop(&mut self) {
+        EditorContentDisplay::clear_screen().expect("Error");
+    }
+}
+
 pub struct Row {
     row_content: String,
     render: String,

@@ -20,6 +20,8 @@ pub struct Editor {
 impl Editor {
     /// 创建编辑器
     pub fn new() -> Self {
+        terminal::enable_raw_mode().unwrap();
+
         let mut arg = env::args();
         let win_size = terminal::size()
             .map(|(x, y)| (x as usize, y as usize))
@@ -121,5 +123,11 @@ impl Editor {
             }
             _ => {}
         }
+    }
+}
+
+impl Drop for Editor {
+    fn drop(&mut self) {
+        terminal::disable_raw_mode().expect("无法关闭 Raw 模式");
     }
 }
