@@ -6,6 +6,7 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::{event, terminal};
 
 use crate::status::StatusInfo;
+use crate::view::EditView;
 use crate::{CursorController, EditorContentDisplay};
 
 /// 编辑器
@@ -20,6 +21,8 @@ pub struct Editor {
     win_size: (usize, usize),
     // 状态信息
     status_info: StatusInfo,
+    // 编辑视图
+    edit_view: EditView,
 }
 
 impl Editor {
@@ -39,6 +42,7 @@ impl Editor {
                 file_name: None,
                 win_size,
                 status_info: StatusInfo::new(None, 0, initial_message),
+                edit_view: EditView::new(),
             },
             Some(file) => {
                 let content: Vec<String> =
@@ -54,6 +58,7 @@ impl Editor {
                     file_name: Some(file.clone().into()),
                     win_size,
                     status_info: StatusInfo::new(Some(file.clone().into()), lines, initial_message),
+                    edit_view: EditView::new(),
                 }
             }
         }
