@@ -1,6 +1,5 @@
 use std::cmp;
 use std::io::{stdout, Write};
-use std::time::{Duration, Instant};
 
 use crossterm::style::style;
 use crossterm::terminal::ClearType;

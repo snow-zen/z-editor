@@ -1,5 +1,3 @@
-use crossterm::terminal;
-
 use crate::cursor_controller::CursorController;
 use crate::editor::Editor;
 use crate::editor_content_display::EditorContentDisplay;
@@ -10,6 +8,7 @@ mod cursor_controller;
 mod editor;
 mod editor_content_display;
 mod editor_output;
+mod status;
 mod status_message;
 
 /// 编辑器版本

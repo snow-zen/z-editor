@@ -5,6 +5,7 @@ use std::{cmp, env, fs};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::{event, terminal};
 
+use crate::status::StatusInfo;
 use crate::{CursorController, EditorContentDisplay};
 
 /// 编辑器
@@ -16,7 +17,9 @@ pub struct Editor {
     // 文件路径
     file_name: Option<PathBuf>,
     // 窗口大小
-    win_size: (usize, usize)
+    win_size: (usize, usize),
+    // 状态信息
+    status_info: StatusInfo,
 }
 
 impl Editor {
@@ -28,24 +31,29 @@ impl Editor {
         let win_size = terminal::size()
             .map(|(x, y)| (x as usize, y as usize))
             .unwrap();
+        let initial_message = "HELP: Ctrl-Q = Quit.".into();
         match arg.nth(1) {
             None => Self {
                 editor_content_display: EditorContentDisplay::new(Vec::new(), win_size),
                 cursor_controller: CursorController::new(win_size),
                 file_name: None,
-                win_size
+                win_size,
+                status_info: StatusInfo::new(None, 0, initial_message),
             },
             Some(file) => {
-                let content = fs::read_to_string(<String as AsRef<Path>>::as_ref(&file))
-                    .unwrap()
-                    .lines()
-                    .map(|it| String::from(it))
-                    .collect();
+                let content: Vec<String> =
+                    fs::read_to_string(<String as AsRef<Path>>::as_ref(&file))
+                        .unwrap()
+                        .lines()
+                        .map(|it| String::from(it))
+                        .collect();
+                let lines = content.len();
                 Self {
                     editor_content_display: EditorContentDisplay::new(content, win_size),
                     cursor_controller: CursorController::new(win_size),
-                    file_name: Some(file.into()),
-                    win_size
+                    file_name: Some(file.clone().into()),
+                    win_size,
+                    status_info: StatusInfo::new(Some(file.clone().into()), lines, initial_message),
                 }
             }
         }
