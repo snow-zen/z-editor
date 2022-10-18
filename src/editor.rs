@@ -8,6 +8,7 @@ use crossterm::{event, terminal};
 use crate::status::StatusInfo;
 use crate::view::EditView;
 use crate::{CursorController, EditorContentDisplay};
+use crate::log::EditLog;
 
 /// 编辑器
 pub struct Editor {
@@ -23,6 +24,8 @@ pub struct Editor {
     status_info: StatusInfo,
     // 编辑视图
     edit_view: EditView,
+    // 编辑日志
+    edit_log: EditLog,
 }
 
 impl Editor {
@@ -43,6 +46,7 @@ impl Editor {
                 win_size,
                 status_info: StatusInfo::new(None, 0, initial_message),
                 edit_view: EditView::new(),
+                edit_log: EditLog::new(),
             },
             Some(file) => {
                 let content: Vec<String> =
@@ -59,6 +63,7 @@ impl Editor {
                     win_size,
                     status_info: StatusInfo::new(Some(file.clone().into()), lines, initial_message),
                     edit_view: EditView::new(),
+                    edit_log: EditLog::new(),
                 }
             }
         }

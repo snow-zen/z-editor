@@ -1,8 +1,8 @@
-pub struct EditView {
+pub struct EditLog {
 
 }
 
-impl EditView {
+impl EditLog {
     pub fn new() -> Self {
         Self {}
     }
