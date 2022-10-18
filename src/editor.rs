@@ -5,7 +5,7 @@ use std::{cmp, env, fs};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::{event, terminal};
 
-use crate::log::EditLog;
+use crate::edit_log::EditLog;
 use crate::status::StatusInfo;
 use crate::view::EditorView;
 use crate::CursorController;

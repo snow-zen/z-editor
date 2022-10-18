@@ -10,7 +10,7 @@ mod view;
 mod editor_output;
 mod status;
 mod status_message;
-mod log;
+mod edit_log;
 
 /// 编辑器版本
 const VERSION: &str = "0.0.1";
