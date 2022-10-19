@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::status::Status::Saved;
+use std::path::PathBuf;
 
 /// 状态信息
 pub struct StatusInfo {
@@ -10,7 +10,7 @@ pub struct StatusInfo {
     // 状态
     status: Status,
     // 显示信息
-    message: String
+    message: String,
 }
 
 impl StatusInfo {
@@ -20,14 +20,13 @@ impl StatusInfo {
             file_name,
             lines,
             status: Saved,
-            message: initial_message
+            message: initial_message,
         }
     }
 
     /// 获取文件名。如果不存在，则返回默认名称：**[No Name]**
     pub fn file_name_or_default(&self) -> &str {
-        self
-            .file_name
+        self.file_name
             .as_ref()
             .and_then(|path| path.file_name())
             .and_then(|name| name.to_str())
@@ -44,4 +43,3 @@ pub enum Status {
     /// 已修改
     Modified,
 }
-

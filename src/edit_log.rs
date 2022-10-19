@@ -1,6 +1,4 @@
-pub struct EditLog {
-
-}
+pub struct EditLog {}
 
 impl EditLog {
     pub fn new() -> Self {

@@ -20,7 +20,7 @@ extern crate log;
 /// 编辑器版本
 const VERSION: &str = "0.0.1";
 /// 制表符大小
-const TAB_STOP: usize = 8;
+const TAB_SIZE: usize = 8;
 
 fn main() -> crossterm::Result<()> {
     init_log();

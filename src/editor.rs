@@ -117,14 +117,14 @@ impl Editor {
                 code: val @ (KeyCode::PageUp | KeyCode::PageDown),
                 modifiers: KeyModifiers::NONE,
             } => {
+                let rows_offset = self.cursor_controller.get_rows_offset();
                 if matches!(val, KeyCode::PageUp) {
-                    self.cursor_controller.get_cursor().1 = self.cursor_controller.get_row_offset();
+                    self.cursor_controller.get_cursor().set_y(rows_offset);
                 } else {
-                    self.cursor_controller.get_cursor().1 = cmp::min(
-                        self.editor_view.get_win_size().1 + self.cursor_controller.get_row_offset()
-                            - 1,
+                    self.cursor_controller.get_cursor().set_y(cmp::min(
+                        self.editor_view.get_win_size().1 + rows_offset - 1,
                         self.editor_view.number_of_rows(),
-                    )
+                    ))
                 }
                 (0..self.editor_view.get_win_size().1).for_each(|_| {
                     self.cursor_controller.move_cursor(

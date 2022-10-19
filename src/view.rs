@@ -5,7 +5,7 @@ use crossterm::style::style;
 use crossterm::terminal::ClearType;
 use crossterm::{cursor, execute, queue, style, terminal};
 
-use crate::{CursorController, EditorOutput, StatusMessage, TAB_STOP, VERSION};
+use crate::{CursorController, EditorOutput, StatusMessage, TAB_SIZE, VERSION};
 
 /// 编辑器内容显示器
 pub struct EditorView {
@@ -42,8 +42,8 @@ impl EditorView {
         self.draw_rows(cc);
         self.draw_status_bar(cc, file_name);
         self.draw_message_bar();
-        let cursor_x = cc.get_render_x() - cc.get_column_offset();
-        let cursor_y = cc.get_cursor().1 - cc.get_row_offset();
+        let cursor_x = cc.get_cursor().get_x() - cc.get_columns_offset();
+        let cursor_y = cc.get_cursor().get_y() - cc.get_rows_offset();
         queue!(
             self.editor_output,
             cursor::MoveTo(cursor_x as u16, cursor_y as u16),
@@ -57,7 +57,7 @@ impl EditorView {
         let screen_rows = self.win_size.1;
         let screen_columns = self.win_size.0;
         for i in 0..screen_rows {
-            let file_rows = i + cc.get_row_offset();
+            let file_rows = i + cc.get_rows_offset();
             if file_rows >= self.rows.len() {
                 if self.rows.len() == 0 && i == screen_rows / 3 {
                     let mut welcome = format!("z-editor --- version: {}", VERSION);
@@ -76,7 +76,7 @@ impl EditorView {
                 }
             } else {
                 let text = &self.rows[file_rows].render;
-                let column_offset = cc.get_column_offset();
+                let column_offset = cc.get_columns_offset();
                 let mut len = cmp::min(text.len().saturating_sub(column_offset), screen_columns);
                 // Note: 修复中文字符串截取问题
                 while !text.is_char_boundary(len) {
@@ -97,7 +97,7 @@ impl EditorView {
             .push_str(&style::Attribute::Reverse.to_string());
         let info = format!("{} -- {} lines", file_name, self.number_of_rows());
         let info_len = cmp::min(info.len(), self.win_size.0);
-        let line_info = format!("{}/{}", cc.get_cursor().1 + 1, self.number_of_rows());
+        let line_info = format!("{}/{}", cc.get_cursor().get_y() + 1, self.number_of_rows());
         self.editor_output.push_str(&info[..info_len]);
         for i in info_len..self.win_size.0 {
             if self.win_size.0 - i == line_info.len() {
@@ -154,13 +154,13 @@ impl Row {
         let mut index = 0;
         let capacity = row_content
             .chars()
-            .fold(0, |acc, next| acc + if next == '\t' { TAB_STOP } else { 1 });
+            .fold(0, |acc, next| acc + if next == '\t' { TAB_SIZE } else { 1 });
         let mut render = String::with_capacity(capacity);
         row_content.chars().for_each(|c| {
             index += 1;
             if c == '\t' {
                 render.push(' ');
-                while index % TAB_STOP != 0 {
+                while index % TAB_SIZE != 0 {
                     render.push(' ');
                     index += 1;
                 }
