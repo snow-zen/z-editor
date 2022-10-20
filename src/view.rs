@@ -32,7 +32,7 @@ impl EditorView {
             cursor::MoveTo(cursor_x as u16, cursor_y as u16),
             cursor::Show
         )
-            .unwrap();
+        .unwrap();
     }
 
     // 绘制 banner
@@ -170,13 +170,17 @@ impl Drop for EditorView {
     }
 }
 
+/// 编辑行
 pub struct EditRow {
+    // 原内容
     raw_content: String,
+    // 渲染内容
     rendered_content: String,
 }
 
 impl EditRow {
-    fn new(raw_content: String) -> Self {
+    /// 创建编辑行
+    pub fn new(raw_content: String) -> Self {
         let mut index = 0;
         let capacity = raw_content
             .chars()
@@ -200,10 +204,12 @@ impl EditRow {
         }
     }
 
+    /// 获取原内容
     pub fn get_raw_content(&self) -> &str {
         self.raw_content.as_str()
     }
 
+    /// 获取渲染内容
     pub fn get_rendered_content(&self) -> &str {
         self.rendered_content.as_str()
     }

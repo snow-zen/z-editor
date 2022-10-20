@@ -96,7 +96,8 @@ impl CursorController {
                     self.render_position.0 -= 1;
                 } else {
                     self.render_position.1 -= 1;
-                    self.render_position.0 = ecd.rendered_content_of_row(self.render_position.1).len();
+                    self.render_position.0 =
+                        ecd.rendered_content_of_row(self.render_position.1).len();
                 }
             }
             KeyCode::Right => {
