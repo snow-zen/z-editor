@@ -1,5 +1,6 @@
 use std::cmp;
 use std::cmp::Ordering;
+use std::fmt::{Display, Formatter};
 
 use crossterm::event::KeyCode;
 
@@ -71,7 +72,13 @@ impl CursorController {
             self.render_position.0 - self.screen_columns + 1
         } else {
             cmp::min(self.columns_offset, self.render_position.0)
-        }
+        };
+        trace!(
+            "屏幕发生滚动，渲染列偏移量：{}，行偏移量：{}，列偏移量：{}",
+            self.render_position.0,
+            self.rows_offset,
+            self.columns_offset
+        );
     }
 
     /// 移动光标
@@ -79,6 +86,7 @@ impl CursorController {
         let number_of_rows = ecd.number_of_rows();
         // todo 移动光标支持中文
         // todo 支持原始光标移动
+        debug!("光标变动前位置：{}", self.render_position);
         match direction {
             KeyCode::Up => {
                 self.render_position.1 = self.render_position.1.saturating_sub(1);
@@ -127,6 +135,7 @@ impl CursorController {
             0
         };
         self.render_position.0 = cmp::min(self.render_position.0, row_len);
+        debug!("光标变动后位置：{}", self.render_position);
     }
 
     fn calculate_render_x(&self, row: &Row) -> usize {
@@ -143,6 +152,7 @@ impl CursorController {
 }
 
 /// 光标
+#[derive(Debug)]
 pub struct Cursor(usize, usize);
 
 impl Cursor {
@@ -162,5 +172,11 @@ impl Cursor {
 
     pub fn set_y(&mut self, new_y: usize) {
         self.1 = new_y;
+    }
+}
+
+impl Display for Cursor {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.0, self.1)
     }
 }

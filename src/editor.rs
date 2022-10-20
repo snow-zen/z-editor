@@ -18,6 +18,7 @@ pub struct Editor {
     cursor_controller: CursorController,
     // 窗口大小
     win_size: (usize, usize),
+    // todo 移动到视图中
     // 状态信息
     status_info: StatusInfo,
     // 编辑日志
@@ -62,6 +63,7 @@ impl Editor {
             .map(|(x, y)| (x as usize, y as usize))
             .unwrap();
         let initial_message = "HELP: Ctrl-Q = Quit.".into();
+        info!("启动编辑器。窗口大小：{:?}，参数：{:?}", win_size, arg);
 
         match arg.nth(1) {
             None => Self::empty(win_size, initial_message),
@@ -79,6 +81,7 @@ impl Editor {
             let mut exit_flag = false;
             if self.is_event_available().unwrap() {
                 if let Event::Key(event) = event::read().unwrap() {
+                    debug!("检测到输入事件：{:?}", event);
                     self.process_key(event, &mut exit_flag);
                 }
             }
