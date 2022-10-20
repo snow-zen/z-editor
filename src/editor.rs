@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 use std::{cmp, env, fs};
 
@@ -69,10 +69,9 @@ impl Editor {
     /// 运行编辑器
     pub fn run(&mut self) {
         loop {
-            let file_name = self.status_info.file_name_or_default();
             self.cursor_controller.scroll(&self.editor_view);
             self.editor_view
-                .refresh_screen(&mut self.cursor_controller, file_name);
+                .refresh_screen(&mut self.cursor_controller, &self.status_info);
             let mut exit_flag = false;
             if self.is_event_available().unwrap() {
                 if let Event::Key(event) = event::read().unwrap() {

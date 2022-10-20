@@ -32,6 +32,10 @@ impl StatusInfo {
             .and_then(|name| name.to_str())
             .unwrap_or("[No Name]")
     }
+
+    pub fn get_message(&self) -> &str {
+        self.message.as_str()
+    }
 }
 
 /// 状态枚举

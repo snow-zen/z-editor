@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 
 use crossterm::event::KeyCode;
 
-use crate::view::Row;
+use crate::view::EditRow;
 use crate::{EditorView, TAB_SIZE};
 
 /// 光标控制器
@@ -54,7 +54,7 @@ impl CursorController {
     pub fn scroll(&mut self, ecd: &EditorView) {
         // 设置渲染列偏移量
         self.render_position.0 = if self.render_position.1 < ecd.number_of_rows() {
-            self.calculate_render_x(ecd.get_row(self.render_position.1))
+            self.calculate_render_x(ecd.get_edit_row(self.render_position.1))
         } else {
             0
         };
@@ -96,7 +96,7 @@ impl CursorController {
                     self.render_position.0 -= 1;
                 } else {
                     self.render_position.1 -= 1;
-                    self.render_position.0 = ecd.get_render_row(self.render_position.1).len();
+                    self.render_position.0 = ecd.rendered_content_of_row(self.render_position.1).len();
                 }
             }
             KeyCode::Right => {
@@ -104,7 +104,7 @@ impl CursorController {
                     match self
                         .render_position
                         .0
-                        .cmp(&ecd.get_render_row(self.render_position.1).len())
+                        .cmp(&ecd.rendered_content_of_row(self.render_position.1).len())
                     {
                         Ordering::Less => self.render_position.0 += 1,
                         _ => {
@@ -123,14 +123,14 @@ impl CursorController {
                 self.render_position.0 = 0;
             }
             KeyCode::End => {
-                self.render_position.0 = ecd.get_render_row(self.render_position.1).len();
+                self.render_position.0 = ecd.rendered_content_of_row(self.render_position.1).len();
             }
             _ => unimplemented!(),
         }
 
         // 光标上下移动时，重新设置列偏移量
         let row_len = if self.render_position.1 < number_of_rows {
-            ecd.get_render_row(self.render_position.1).len()
+            ecd.rendered_content_of_row(self.render_position.1).len()
         } else {
             0
         };
@@ -138,8 +138,8 @@ impl CursorController {
         debug!("光标变动后位置：{}", self.render_position);
     }
 
-    fn calculate_render_x(&self, row: &Row) -> usize {
-        row.get_row_content()[..self.raw_position.0]
+    fn calculate_render_x(&self, row: &EditRow) -> usize {
+        row.get_raw_content()[..self.raw_position.0]
             .chars()
             .fold(0, |render_x, c| {
                 if c == '\t' {

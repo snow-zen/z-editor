@@ -1,9 +1,8 @@
 use crate::cursor_controller::CursorController;
 use crate::editor::Editor;
 use crate::editor_output::EditorOutput;
-use crate::status_message::StatusMessage;
 use crate::view::EditorView;
-use env_logger::{Builder, Env, Target};
+use env_logger::{Builder, Target};
 use log::LevelFilter;
 
 mod cursor_controller;
@@ -11,7 +10,6 @@ mod edit_log;
 mod editor;
 mod editor_output;
 mod status;
-mod status_message;
 mod view;
 
 #[macro_use]
