@@ -16,9 +16,6 @@ pub struct Editor {
     editor_view: EditorView,
     // 光标控制器
     cursor_controller: CursorController,
-    // 窗口大小
-    win_size: (usize, usize),
-    // todo 移动到视图中
     // 状态信息
     status_info: StatusInfo,
     // 编辑日志
@@ -29,7 +26,6 @@ impl Editor {
     // 创建空内容的编辑器
     fn empty(win_size: (usize, usize), initial_message: String) -> Self {
         Self {
-            win_size,
             editor_view: EditorView::new(Vec::new(), win_size),
             cursor_controller: CursorController::new(win_size),
             status_info: StatusInfo::new(None, 0, initial_message),
@@ -46,7 +42,6 @@ impl Editor {
             .collect();
         let lines = content.len();
         Self {
-            win_size,
             editor_view: EditorView::new(content, win_size),
             cursor_controller: CursorController::new(win_size),
             status_info: StatusInfo::new(Some(file.to_path_buf()), lines, initial_message),
