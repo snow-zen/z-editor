@@ -9,10 +9,6 @@ use crate::{EditorView, TAB_SIZE};
 
 /// 光标控制器
 pub struct CursorController {
-    // 窗口最大行数
-    screen_rows: usize,
-    // 窗口最大列数
-    screen_columns: usize,
     // 行偏移量
     rows_offset: usize,
     // 列偏移量
@@ -25,10 +21,8 @@ pub struct CursorController {
 
 impl CursorController {
     /// 创建初始光标控制器
-    pub fn new(win_size: (usize, usize)) -> Self {
+    pub fn new() -> Self {
         Self {
-            screen_rows: win_size.1,
-            screen_columns: win_size.0,
             rows_offset: 0,
             columns_offset: 0,
             raw_position: Cursor(0, 0),
@@ -52,6 +46,7 @@ impl CursorController {
 
     /// 屏幕滚动
     pub fn scroll(&mut self, ecd: &EditorView) {
+        let win_size = ecd.get_win_size();
         // 设置渲染列偏移量
         self.render_position.0 = if self.render_position.1 < ecd.number_of_rows() {
             self.calculate_render_x(ecd.get_edit_row(self.render_position.1))
@@ -60,16 +55,15 @@ impl CursorController {
         };
 
         // 设置行偏移量
-        self.rows_offset = if self.render_position.1 >= self.rows_offset + self.screen_rows {
-            self.render_position.1 - self.screen_rows + 1
+        self.rows_offset = if self.render_position.1 >= self.rows_offset + win_size.1 {
+            self.render_position.1 - win_size.1 + 1
         } else {
             cmp::min(self.rows_offset, self.render_position.1)
         };
 
         // 设置列偏移量
-        self.columns_offset = if self.render_position.0 >= self.columns_offset + self.screen_columns
-        {
-            self.render_position.0 - self.screen_columns + 1
+        self.columns_offset = if self.render_position.0 >= self.columns_offset + win_size.0 {
+            self.render_position.0 - win_size.0 + 1
         } else {
             cmp::min(self.columns_offset, self.render_position.0)
         };

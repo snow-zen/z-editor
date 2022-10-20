@@ -27,7 +27,7 @@ impl Editor {
     fn empty(win_size: (usize, usize), initial_message: String) -> Self {
         Self {
             editor_view: EditorView::new(Vec::new(), win_size),
-            cursor_controller: CursorController::new(win_size),
+            cursor_controller: CursorController::new(),
             status_info: StatusInfo::new(None, 0, initial_message),
             edit_log: EditLog::new(),
         }
@@ -43,7 +43,7 @@ impl Editor {
         let lines = content.len();
         Self {
             editor_view: EditorView::new(content, win_size),
-            cursor_controller: CursorController::new(win_size),
+            cursor_controller: CursorController::new(),
             status_info: StatusInfo::new(Some(file.to_path_buf()), lines, initial_message),
             edit_log: EditLog::new(),
         }
