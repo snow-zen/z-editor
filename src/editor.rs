@@ -24,9 +24,9 @@ pub struct Editor {
 
 impl Editor {
     // 创建空内容的编辑器
-    fn empty(win_size: (usize, usize), initial_message: String) -> Self {
+    fn empty(initial_message: String) -> Self {
         Self {
-            editor_view: EditorView::new(Vec::new(), win_size),
+            editor_view: EditorView::new(Vec::new()),
             cursor_controller: CursorController::new(),
             status_info: StatusInfo::new(None, 0, initial_message),
             edit_log: EditLog::new(),
@@ -34,15 +34,16 @@ impl Editor {
     }
 
     // 根据指定文件创建编辑器
-    fn from_file(file: &Path, win_size: (usize, usize), initial_message: String) -> Self {
+    fn from_file(file: &Path, initial_message: String) -> Self {
         let content: Vec<String> = fs::read_to_string(file)
             .unwrap()
             .lines()
             .map(|it| String::from(it))
             .collect();
         let lines = content.len();
+        info!("读取文件：{:?}，总行数：{}", file, lines);
         Self {
-            editor_view: EditorView::new(content, win_size),
+            editor_view: EditorView::new(content),
             cursor_controller: CursorController::new(),
             status_info: StatusInfo::new(Some(file.to_path_buf()), lines, initial_message),
             edit_log: EditLog::new(),
@@ -54,15 +55,12 @@ impl Editor {
         terminal::enable_raw_mode().unwrap();
 
         let mut arg = env::args();
-        let win_size = terminal::size()
-            .map(|(x, y)| (x as usize, y as usize))
-            .unwrap();
         let initial_message = "HELP: Ctrl-Q = Quit.".into();
-        info!("启动编辑器。窗口大小：{:?}，参数：{:?}", win_size, arg);
+        info!("启动编辑器，启动参数：{:?}", arg);
 
         match arg.nth(1) {
-            None => Self::empty(win_size, initial_message),
-            Some(file) => Self::from_file(file.as_ref(), win_size, initial_message),
+            None => Self::empty(initial_message),
+            Some(file) => Self::from_file(file.as_ref(), initial_message),
         }
     }
 
@@ -142,5 +140,6 @@ impl Editor {
 impl Drop for Editor {
     fn drop(&mut self) {
         terminal::disable_raw_mode().expect("无法关闭 Raw 模式");
+        info!("关闭编辑器")
     }
 }

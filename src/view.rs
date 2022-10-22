@@ -113,13 +113,16 @@ impl EditorView {
     fn draw_message_bar(&mut self, status_info: &StatusInfo) {
         queue!(self.editor_output, terminal::Clear(ClearType::UntilNewLine)).unwrap();
         let msg = status_info.get_message();
-        self.editor_output.push_str(msg);
         self.editor_output
             .push_str(&msg[..cmp::min(self.win_size.0, msg.len())]);
     }
 
     /// 创建编辑器内容显示器
-    pub fn new(content: Vec<String>, win_size: (usize, usize)) -> Self {
+    pub fn new(content: Vec<String>) -> Self {
+        let win_size = terminal::size()
+            .map(|(x, y)| (x as usize, y as usize))
+            .unwrap();
+        info!("创建编辑视图，窗口大小为：{:?}", win_size);
         Self {
             win_size,
             editor_output: EditorOutput::new(),
@@ -137,8 +140,8 @@ impl EditorView {
     pub fn refresh_screen(&mut self, cc: &mut CursorController, status_info: &StatusInfo) {
         self.reset_and_hide_cursor();
         self.draw_rows(cc);
-        self.draw_status_bar(cc, status_info.file_name_or_default());
-        self.draw_message_bar(status_info);
+        // self.draw_status_bar(cc, status_info.file_name_or_default());
+        // self.draw_message_bar(status_info);
         self.move_cursor(cc);
         self.editor_output.flush().unwrap();
     }
