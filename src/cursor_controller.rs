@@ -78,67 +78,25 @@ impl CursorController {
     /// 移动光标
     pub fn move_cursor(&mut self, direction: KeyCode, ecd: &EditorView) {
         let number_of_rows = ecd.number_of_rows();
-        // todo 移动光标支持中文
-        // todo 支持原始光标移动
         debug!("光标变动前位置：{}", self.render_position);
         match direction {
             KeyCode::Up => {
-                self.render_position.1 = self.render_position.1.saturating_sub(1);
-                self.raw_position.1 = self.raw_position.1.saturating_sub(1);
+                self.move_up();
             }
             KeyCode::Left => {
-                if self.render_position.0 != 0 {
-                    self.render_position.0 -= 1;
-                    let raw_text = ecd.raw_content_of_row(self.raw_position.1);
-                    self.raw_position.0 = (0..self.raw_position.0)
-                        .rposition(|i| raw_text.is_char_boundary(i))
-                        .unwrap()
-                } else {
-                    self.render_position.1 -= 1;
-                    self.raw_position.1 -= 1;
-                    self.render_position.0 =
-                        ecd.rendered_content_of_row(self.render_position.1).len();
-                    self.raw_position.0 = ecd.raw_content_of_row(self.raw_position.1).len();
-                }
+                self.move_left(ecd);
             }
             KeyCode::Right => {
-                if self.render_position.1 < number_of_rows {
-                    match self
-                        .render_position
-                        .0
-                        .cmp(&ecd.rendered_content_of_row(self.render_position.1).len())
-                    {
-                        Ordering::Less => {
-                            self.render_position.0 += 1;
-                            let raw_text = ecd.raw_content_of_row(self.raw_position.1);
-                            self.raw_position.0 += ((self.raw_position.0 + 1)
-                                ..(self.raw_position.0 + 3))
-                                .position(|i| raw_text.is_char_boundary(i))
-                                .unwrap()
-                                + 1;
-                        }
-                        _ => {
-                            self.render_position.1 += 1;
-                            self.raw_position.1 += 1;
-                            self.render_position.0 = 0;
-                            self.raw_position.0 = 0;
-                        }
-                    }
-                }
+                self.move_right(ecd);
             }
             KeyCode::Down => {
-                if self.render_position.1 < number_of_rows {
-                    self.render_position.1 += 1;
-                    self.raw_position.1 += 1;
-                }
+                self.move_down(ecd);
             }
             KeyCode::Home => {
-                self.render_position.0 = 0;
-                self.raw_position.0 = 0;
+                self.move_home();
             }
             KeyCode::End => {
-                self.render_position.0 = ecd.rendered_content_of_row(self.render_position.1).len();
-                self.raw_position.0 = ecd.raw_content_of_row(self.raw_position.1).len();
+                self.move_end(ecd);
             }
             _ => unimplemented!(),
         }
@@ -151,6 +109,76 @@ impl CursorController {
         };
         self.render_position.0 = cmp::min(self.render_position.0, row_len);
         debug!("光标变动后位置：{}", self.render_position);
+    }
+
+    /// 光标上移
+    pub fn move_up(&mut self) {
+        self.render_position.1 = self.render_position.1.saturating_sub(1);
+        self.raw_position.1 = self.raw_position.1.saturating_sub(1);
+    }
+
+    /// 光标下移
+    pub fn move_down(&mut self, ecd: &EditorView) {
+        if self.render_position.1 < ecd.number_of_rows() {
+            self.render_position.1 += 1;
+            self.raw_position.1 += 1;
+        }
+    }
+
+    /// 光标左移
+    pub fn move_left(&mut self, ecd: &EditorView) {
+        if self.render_position.0 > 0 {
+            self.render_position.0 -= 1;
+            let raw_content = ecd.raw_content_of_row(self.raw_position.1);
+            self.raw_position.0 = (0..self.raw_position.0)
+                .rposition(|i| raw_content.is_char_boundary(i))
+                .unwrap();
+        } else {
+            // 文首左移切换到上一行文末
+            // todo 考虑边界情况，例如首行文首左移
+            self.render_position.1 -= 1;
+            self.raw_position.1 -= 1;
+            self.render_position.0 = ecd.rendered_content_of_row(self.render_position.1).len();
+            self.raw_position.0 = ecd.raw_content_of_row(self.raw_position.1).len();
+        }
+    }
+
+    /// 光标右移
+    pub fn move_right(&mut self, ecd: &EditorView) {
+        if self.render_position.1 < ecd.number_of_rows() {
+            match self
+                .render_position
+                .0
+                .cmp(&ecd.rendered_content_of_row(self.render_position.1).len())
+            {
+                Ordering::Less => {
+                    self.render_position.0 += 1;
+                    let raw_text = ecd.raw_content_of_row(self.raw_position.1);
+                    self.raw_position.0 += ((self.raw_position.0 + 1)..(self.raw_position.0 + 3))
+                        .position(|i| raw_text.is_char_boundary(i))
+                        .unwrap()
+                        + 1;
+                }
+                _ => {
+                    self.render_position.1 += 1;
+                    self.raw_position.1 += 1;
+                    self.render_position.0 = 0;
+                    self.raw_position.0 = 0;
+                }
+            }
+        }
+    }
+
+    /// 光标移动至行首
+    pub fn move_home(&mut self) {
+        self.render_position.0 = 0;
+        self.raw_position.0 = 0;
+    }
+
+    /// 光标移动至行末
+    pub fn move_end(&mut self, ecd: &EditorView) {
+        self.render_position.0 = ecd.rendered_content_of_row(self.render_position.1).len();
+        self.raw_position.0 = ecd.raw_content_of_row(self.raw_position.1).len();
     }
 
     fn calculate_render_x(&self, row: &EditRow) -> usize {
