@@ -84,14 +84,21 @@ impl CursorController {
         match direction {
             KeyCode::Up => {
                 self.render_position.1 = self.render_position.1.saturating_sub(1);
+                self.raw_position.1 = self.raw_position.1.saturating_sub(1);
             }
             KeyCode::Left => {
                 if self.render_position.0 != 0 {
                     self.render_position.0 -= 1;
+                    let raw_text = ecd.raw_content_of_row(self.raw_position.1);
+                    self.raw_position.0 = (0..self.raw_position.0)
+                        .rposition(|i| raw_text.is_char_boundary(i))
+                        .unwrap()
                 } else {
                     self.render_position.1 -= 1;
+                    self.raw_position.1 -= 1;
                     self.render_position.0 =
                         ecd.rendered_content_of_row(self.render_position.1).len();
+                    self.raw_position.0 = ecd.raw_content_of_row(self.raw_position.1).len();
                 }
             }
             KeyCode::Right => {
@@ -101,10 +108,20 @@ impl CursorController {
                         .0
                         .cmp(&ecd.rendered_content_of_row(self.render_position.1).len())
                     {
-                        Ordering::Less => self.render_position.0 += 1,
+                        Ordering::Less => {
+                            self.render_position.0 += 1;
+                            let raw_text = ecd.raw_content_of_row(self.raw_position.1);
+                            self.raw_position.0 += ((self.raw_position.0 + 1)
+                                ..(self.raw_position.0 + 3))
+                                .position(|i| raw_text.is_char_boundary(i))
+                                .unwrap()
+                                + 1;
+                        }
                         _ => {
                             self.render_position.1 += 1;
+                            self.raw_position.1 += 1;
                             self.render_position.0 = 0;
+                            self.raw_position.0 = 0;
                         }
                     }
                 }
@@ -112,13 +129,16 @@ impl CursorController {
             KeyCode::Down => {
                 if self.render_position.1 < number_of_rows {
                     self.render_position.1 += 1;
+                    self.raw_position.1 += 1;
                 }
             }
             KeyCode::Home => {
                 self.render_position.0 = 0;
+                self.raw_position.0 = 0;
             }
             KeyCode::End => {
                 self.render_position.0 = ecd.rendered_content_of_row(self.render_position.1).len();
+                self.raw_position.0 = ecd.raw_content_of_row(self.raw_position.1).len();
             }
             _ => unimplemented!(),
         }

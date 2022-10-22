@@ -164,6 +164,11 @@ impl EditorView {
         self.edit_rows[i].get_rendered_content()
     }
 
+    /// 获取指定行的原始内容
+    pub fn raw_content_of_row(&self, i: usize) -> &str {
+        self.edit_rows[i].get_raw_content()
+    }
+
     /// 获取指定行
     pub fn get_edit_row(&self, i: usize) -> &EditRow {
         &self.edit_rows[i]
