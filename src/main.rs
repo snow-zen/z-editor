@@ -30,7 +30,7 @@ fn main() -> crossterm::Result<()> {
 // 初始化日志设置
 fn init_log() {
     Builder::from_default_env()
-        .filter_level(LevelFilter::Info)
+        .filter_level(LevelFilter::Trace)
         .target(Target::Stderr)
         .init();
 }

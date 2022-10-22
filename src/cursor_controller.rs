@@ -55,8 +55,8 @@ impl CursorController {
         };
 
         // 设置行偏移量
-        self.rows_offset = if self.render_position.1 >= self.rows_offset + win_size.1 {
-            self.render_position.1 - win_size.1 + 1
+        self.rows_offset = if self.render_position.1 >= self.rows_offset + ecd.get_win_max_rows() {
+            self.render_position.1 - ecd.get_win_max_rows() + 1
         } else {
             cmp::min(self.rows_offset, self.render_position.1)
         };

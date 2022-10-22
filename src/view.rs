@@ -11,6 +11,8 @@ use crate::{CursorController, EditorOutput, TAB_SIZE, VERSION};
 pub struct EditorView {
     // 终端窗口大小
     win_size: (usize, usize),
+    // 终端窗口最大文本行数
+    win_max_rows: usize,
     // 编辑器输出
     editor_output: EditorOutput,
     // 文本行
@@ -67,19 +69,14 @@ impl EditorView {
     }
 
     // 绘制屏幕所有行
-    fn draw_rows(&mut self, cc: &mut CursorController) {
-        let screen_rows = self.win_size.1;
-        for i in 0..screen_rows {
+    fn draw_text_rows(&mut self, cc: &mut CursorController) {
+        // 窗口留下两行用于打印其他信息
+        let max_text_rows = self.win_size.1.saturating_sub(2);
+        for i in 0..max_text_rows {
             let view_rows = i + cc.get_rows_offset();
             if view_rows >= self.edit_rows.len() {
                 // 超出实际文本内容外的行
-                if self.edit_rows.len() == 0 && i == screen_rows / 3 {
-                    // 无文本内容的编辑器打印编辑器banner
-                    // todo 后续将数据放入状态信息中，在可编辑文本的情况下可能会直接闪出banner
-                    self.draw_banner();
-                } else {
-                    self.editor_output.push('~');
-                }
+                self.editor_output.push('~');
             } else {
                 self.draw_text(cc, view_rows);
             }
@@ -122,9 +119,11 @@ impl EditorView {
         let win_size = terminal::size()
             .map(|(x, y)| (x as usize, y as usize))
             .unwrap();
+        let win_max_rows = win_size.1.saturating_sub(2);
         info!("创建编辑视图，窗口大小为：{:?}", win_size);
         Self {
             win_size,
+            win_max_rows,
             editor_output: EditorOutput::new(),
             edit_rows: content.into_iter().map(|it| EditRow::new(it)).collect(),
         }
@@ -139,9 +138,9 @@ impl EditorView {
     /// 刷新屏幕
     pub fn refresh_screen(&mut self, cc: &mut CursorController, status_info: &StatusInfo) {
         self.reset_and_hide_cursor();
-        self.draw_rows(cc);
-        // self.draw_status_bar(cc, status_info.file_name_or_default());
-        // self.draw_message_bar(status_info);
+        self.draw_text_rows(cc);
+        self.draw_status_bar(cc, status_info.file_name_or_default());
+        self.draw_message_bar(status_info);
         self.move_cursor(cc);
         self.editor_output.flush().unwrap();
     }
@@ -149,6 +148,10 @@ impl EditorView {
     /// 获取窗口大小
     pub fn get_win_size(&self) -> (usize, usize) {
         self.win_size
+    }
+
+    pub fn get_win_max_rows(&self) -> usize {
+        self.win_max_rows
     }
 
     /// 获取文本内容总行数
