@@ -17,6 +17,7 @@ pub struct CursorController {
     raw_position: Cursor,
     // 渲染内容光标位置
     render_position: Cursor,
+    // todo 考虑将 EditView 的只读借用加入结构体中
 }
 
 impl CursorController {
@@ -179,6 +180,25 @@ impl CursorController {
     pub fn move_end(&mut self, ecd: &EditorView) {
         self.render_position.0 = ecd.rendered_content_of_row(self.render_position.1).len();
         self.raw_position.0 = ecd.raw_content_of_row(self.raw_position.1).len();
+    }
+
+    /// 光标上翻页
+    pub fn move_page_up(&mut self, ecd: &EditorView) {
+        self.render_position.1 = self.rows_offset;
+        (0..ecd.get_win_max_rows()).for_each(|_| {
+            self.move_up();
+        })
+    }
+
+    /// 光标下翻页
+    pub fn move_page_down(&mut self, ecd: &EditorView) {
+        self.render_position.1 = cmp::min(
+            self.rows_offset + ecd.get_win_max_rows() + 1,
+            ecd.number_of_rows(),
+        );
+        (0..ecd.get_win_max_rows()).for_each(|_| {
+            self.move_down(ecd);
+        })
     }
 
     fn calculate_render_x(&self, row: &EditRow) -> usize {
